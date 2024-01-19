@@ -2,54 +2,6 @@
 #include <windows.h>
 #include <wingdi.h>
 
-inline LRESULT CALLBACK windowHighlightProc(HWND window_handle, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	if (message == WM_PAINT)
-	{
-	    PAINTSTRUCT ps;
-	    const HDC hdc = BeginPaint( window_handle, &ps );
-
-	    // All painting occurs here, between BeginPaint and EndPaint.
-	    const HBRUSH hBrush = CreateSolidBrush( RGB( 0, 0, 0 ) );
-	    FillRect( hdc, &ps.rcPaint, hBrush );
-
-	    EndPaint( window_handle, &ps );
-	}
-
-	return DefWindowProc(window_handle, message, wParam, lParam);
-}
-
-inline HWND hHighlightWnd = NULL;
-inline HWND hWndSelected = NULL;
-
-inline void CreateHighlightWindow(HINSTANCE hInstance)
-{
-    const wchar_t CLASS_NAME[]  = L"Window Highlight";
-
-    WNDCLASS wc = {};
-    wc.lpfnWndProc   = windowHighlightProc; // Default window procedure
-    wc.hInstance     = hInstance;
-    wc.lpszClassName = CLASS_NAME;
-
-    RegisterClass(&wc);
-
-    hHighlightWnd = CreateWindowEx(
-        WS_EX_LAYERED,
-        CLASS_NAME,
-        L"Highlight",
-        WS_POPUP,
-        0, 0, 0, 0, // Position and size will be set later
-        NULL,
-        NULL,
-        hInstance,
-        NULL
-    );
-    DWORD flags = 0;
-	SetWindowPos(hHighlightWnd, HWND_TOPMOST, 0,0,500,500, flags);
-
-    SetLayeredWindowAttributes(hHighlightWnd, 0, RGB(255, 0, 0), LWA_COLORKEY); // Red border
-}
-
 static VOID DrawWindowBorderForTargeting(
     _In_ HWND hWnd
     )
