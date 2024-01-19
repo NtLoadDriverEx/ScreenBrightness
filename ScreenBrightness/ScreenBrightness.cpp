@@ -1,90 +1,80 @@
 #include <windows.h>
 #include <iostream>
+#include <vector>
+#include <mutex>
+#include <thread>
 
-std::wstring get_computer_unique_classname( )
+#include "window.hpp"
+#include "application.h"
+#include "window_picker.hpp"
+
+std::vector<window_overlay> overlays;
+//std::mutex overlays_mutex;
+
+void overlay_manager()
 {
-    TCHAR ComputerName[MAX_COMPUTERNAME_LENGTH + 1];
-    DWORD dwNameLength = MAX_COMPUTERNAME_LENGTH + 1;
-    GetComputerNameW( ComputerName, &dwNameLength );
-
-    return std::wstring( ComputerName, dwNameLength );
-}
-
-LRESULT CALLBACK WindowProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
-{
-    switch (message)
+	while (true) // TODO: Replace with a condition to exit appropriately
     {
-        case WM_PAINT:
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint( hWnd, &ps );
+        // Check for WIN+SHIFT+B
+        if ((GetAsyncKeyState(VK_LWIN) & 0x8000) &&  // Left Win key is down
+            (GetAsyncKeyState(VK_SHIFT) & 0x8000) && // Shift key is down
+            (GetAsyncKeyState(0x42) & 0x0001))       // 'B' key is pressed
+        {
+            // The key combination WIN+SHIFT+B was detected
+            const HWND selectedWindow = SelectWindow(application_meta::application_base); // Implement this function to select a window
+            if (selectedWindow != NULL)
+            {
+                //std::scoped_lock lock{overlays_mutex};
+                overlays.emplace_back(selectedWindow);
+            }
+        }
 
-            // All painting occurs here, between BeginPaint and EndPaint.
-            const auto hBrush = CreateSolidBrush( RGB( 0, 0, 0 ) );
-            FillRect( hdc, &ps.rcPaint, hBrush );
-
-            EndPaint( hWnd, &ps );
+        // Add a small delay to prevent the loop from consuming too much CPU
+        Sleep(0);
     }
-
-    return DefWindowProc( hWnd, message, wParam, lParam );
 }
 
 int wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow )
 {
+    application_meta::application_base = hInstance;
     SetProcessDpiAwarenessContext( DPI_AWARENESS_CONTEXT_UNAWARE );
-    
+
+#ifdef _DEBUG
     AllocConsole( );
 
     FILE* file;
-    freopen_s(&file, "conin$", "r", stdin );
-    freopen_s(&file, "conout$", "w", stdout );
-    freopen_s(&file, "conout$", "w", stderr );
+    int err;
+    err = freopen_s(&file, "CONIN$", "r", stdin );
+    err = freopen_s(&file, "CONOUT$", "w", stdout );
+    err = freopen_s(&file, "CONOUT$", "w", stderr );
+#endif
 
-    HWND hwnd; WNDCLASSEX wc;
-    ZeroMemory( &wc, sizeof( WNDCLASSEX ) );
+	//std::thread manager_thread(overlay_manager);
+    //manager_thread.detach();
 
-    wc.cbSize = sizeof( WNDCLASSEX );
-    wc.style = CS_HREDRAW | CS_VREDRAW;
-    wc.lpfnWndProc = WindowProc;
-    wc.hInstance = hInstance;
-    wc.hCursor = LoadCursor( NULL, IDC_ARROW );
-    wc.lpszClassName = get_computer_unique_classname().c_str();
+    overlays.emplace_back(FindWindowA("Notepad", nullptr));
 
-    RegisterClassEx( &wc );
+	MSG msg;
+	while (true)
+	{
+        bool result = PeekMessage(&msg, NULL, 0, 0, PM_REMOVE);
 
-    const auto width = GetSystemMetrics( SM_CXSCREEN );
-    const auto height = GetSystemMetrics( SM_CYSCREEN );
+        if (result) {
+            // Process the message
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
 
-    RECT wr = { 0, 0, width, height };
-   
-    hwnd = CreateWindowExW(NULL, get_computer_unique_classname( ).c_str( ), L"", WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_POPUP, 0, 0, wr.right - wr.left, wr.bottom - wr.top, NULL, NULL, hInstance, NULL);
-    SetWindowLongA(hwnd, GWL_EXSTYLE, GetWindowLongA(hwnd, GWL_EXSTYLE) | WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_LAYERED);
-    
-    const UINT opacity_flag = LWA_ALPHA;
-    const UINT color_key = 0x000000;
-    const UINT opacity = 0x50;
 
-    SetLayeredWindowAttributes( hwnd, color_key, opacity, opacity_flag );
-    ShowWindow( hwnd, SW_SHOW );
+	    {
+		    //std::scoped_lock lock{overlays_mutex};
+		    for (auto& overlay : overlays)
+		    {
+		        overlay.Update(); 
+		    }
+	    }
 
-    std::printf("Brightness set. Use +/- to lower");
-
-    MSG msg = { };
-    while (GetMessage( &msg, NULL, 0, 0 ) > 0 && !GetAsyncKeyState( VK_HOME ) & 0x1)
-    {
-        TranslateMessage( &msg );
-        DispatchMessage( &msg );
-
-        // make sure our window stays on top
-        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE );
-
-        static unsigned new_opacity = 0x50;
-        if (GetAsyncKeyState( VK_OEM_PLUS ))
-            new_opacity += 1;
-        
-        if(GetAsyncKeyState( VK_OEM_MINUS ))
-            new_opacity -= 1;
-
-        SetLayeredWindowAttributes( hwnd, color_key, new_opacity, opacity_flag ); Sleep( 100 ); // let our thread get rescheuled we're not that important :/
-    }
+        Sleep(0);
+	}
 }
 
