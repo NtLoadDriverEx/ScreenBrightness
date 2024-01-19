@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+/.vs
+/ScreenBrightness/x64/Debug
+/x64/Debug
