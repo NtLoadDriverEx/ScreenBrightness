@@ -13,7 +13,7 @@ std::vector<window_overlay> overlays;
 
 void overlay_manager()
 {
-	while (true) // TODO: Replace with a condition to exit appropriately
+    while (true) // TODO: Replace with a condition to exit appropriately
     {
         // Check for WIN+SHIFT+B
         if ((GetAsyncKeyState(VK_LWIN) & 0x8000) &&  // Left Win key is down
@@ -49,14 +49,14 @@ int wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int 
     err = freopen_s(&file, "CONOUT$", "w", stderr );
 #endif
 
-	//std::thread manager_thread(overlay_manager);
+    //std::thread manager_thread(overlay_manager);
     //manager_thread.detach();
 
     overlays.emplace_back(FindWindowA("Notepad", nullptr));
 
-	MSG msg;
-	while (true)
-	{
+    MSG msg;
+    while (true)
+    {
         bool result = PeekMessage(&msg, NULL, 0, 0, PM_REMOVE);
 
         if (result) {
@@ -66,15 +66,15 @@ int wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int 
         }
 
 
-	    {
-		    //std::scoped_lock lock{overlays_mutex};
-		    for (auto& overlay : overlays)
-		    {
-		        overlay.Update(); 
-		    }
-	    }
+        {
+            //std::scoped_lock lock{overlays_mutex};
+            for (auto& overlay : overlays)
+            {
+                overlay.Update(); 
+            }
+        }
 
         Sleep(0);
-	}
+    }
 }
 
