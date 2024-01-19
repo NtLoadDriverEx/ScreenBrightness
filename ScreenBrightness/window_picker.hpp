@@ -89,23 +89,6 @@ static VOID DrawWindowBorderForTargeting(
         ReleaseDC(hWnd, hdc);
     }
 }
-inline BOOL CALLBACK EnumWindowsProc(HWND hWnd, LPARAM lParam) {
-    HWND* pResult = reinterpret_cast<HWND*>(lParam);
-    if (hWnd == hHighlightWnd) // Skip the "WindowSelection" window
-        return TRUE;
-
-    RECT rect;
-    GetWindowRect(hWnd, &rect);
-    POINT pt;
-    GetCursorPos(&pt);
-
-    if (PtInRect(&rect, pt)) {
-        *pResult = hWnd;
-        return FALSE; // Stop enumeration as we found the window
-    }
-
-    return TRUE; // Continue enumeration
-}
 
 inline HWND SelectWindow(HINSTANCE hInstance)
 {

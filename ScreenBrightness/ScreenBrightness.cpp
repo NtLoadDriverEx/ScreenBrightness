@@ -20,16 +20,13 @@ void overlay_manager()
             (GetAsyncKeyState(VK_SHIFT) & 0x8000) && // Shift key is down
             (GetAsyncKeyState(0x42) & 0x0001))       // 'B' key is pressed
         {
-            // The key combination WIN+SHIFT+B was detected
-            const HWND selectedWindow = SelectWindow(application_meta::application_base); // Implement this function to select a window
+            const HWND selectedWindow = SelectWindow(application_meta::application_base); 
             if (selectedWindow != NULL)
             {
                 //std::scoped_lock lock{overlays_mutex};
                 overlays.emplace_back(selectedWindow);
             }
         }
-
-        // Add a small delay to prevent the loop from consuming too much CPU
         Sleep(0);
     }
 }
@@ -65,13 +62,9 @@ int wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int 
             DispatchMessage(&msg);
         }
 
-
+        for (auto& overlay : overlays)
         {
-            //std::scoped_lock lock{overlays_mutex};
-            for (auto& overlay : overlays)
-            {
-                overlay.Update(); 
-            }
+            overlay.Update(); 
         }
 
         Sleep(0);
